@@ -35,6 +35,11 @@ import { ResponseAccionesIncidencias } from "@/interfaces/acciones/acciones-inci
 import { ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
 import PaginacionAccionesIdicencias from "../acciones_incidencias/PaginacionAccionesIdicencias";
 import FormVerificacionAccionesIncidencias from "../acciones_incidencias/FormVerificacionAccionesIncidencias";
+import TableVerificacionAcciones from "../acciones_incidencias/TableVerificacionAcciones";
+import { getAccionesVerificadasIncidencias } from "@/api/acciones/get-acciones-verificadas-incidencias";
+import PaginacionAccionesVerificadasIncidencia from "../acciones_incidencias/PaginacionAccionesVerificadasIncidencia";
+import DetailsIncidencia from "../incidencias/DetailsIncidencia";
+import { GetIncidenciasById } from "@/api/incidencias/obtener-incidencias";
 
 interface Props {
   incidencias: Incidencia[] | undefined;
@@ -84,6 +89,28 @@ const TableIncidentes = ({ incidencias, isError, isLoading, user }: Props) => {
     staleTime: 60 * 100 * 5,
   });
 
+  const {
+    data: verificadas,
+    isError: ErrorVer,
+    isLoading: loading,
+  } = useQuery({
+    queryKey: ["verificacion-acciones-incidencias", selectedId, limit, offset],
+    queryFn: () => getAccionesVerificadasIncidencias(selectedId, limit, offset),
+    retry: 0,
+    staleTime: 60 * 100 * 5,
+  });
+
+  const {
+    data: incidenciaId,
+    isError: ErrorId,
+    isLoading: loadingIn,
+  } = useQuery({
+    queryKey: ["inicidencias-id", selectedId],
+    queryFn: () => GetIncidenciasById(selectedId),
+    retry: 0,
+    staleTime: 60 * 100 * 5,
+  });
+
   const handleViewAcciones = (id: string) => {
     setSelectedId(id);
     setOffset(0);
@@ -95,6 +122,7 @@ const TableIncidentes = ({ incidencias, isError, isLoading, user }: Props) => {
   };
 
   const total = acciones?.total || 0;
+  const totalVer = verificadas?.total || 0;
 
   const handleNext = () => {
     if (offset + limit < total) {
@@ -168,11 +196,39 @@ const TableIncidentes = ({ incidencias, isError, isLoading, user }: Props) => {
               {incidencia.categoria}
             </TableCell>
             <TableCell className="text-center">
-              <p>Ver</p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <span
+                    onClick={() => handleViewAcciones(incidencia.id)}
+                    className="hover:underline cursor-pointer"
+                  >
+                    Ver
+                  </span>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-w-xl md:max-w-2xl">
+                  <div className="flex justify-end">
+                    <AlertDialogCancel>X</AlertDialogCancel>
+                  </div>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Mas detalles</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      En esta seccion se pueden observar mas detalles sobre la
+                      incidencia
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div>
+                    <DetailsIncidencia
+                      incidencia={incidenciaId}
+                      isError={ErrorId}
+                      isLoading={loadingIn}
+                    />
+                  </div>
+                </AlertDialogContent>
+              </AlertDialog>
             </TableCell>
             {user?.rol === "Administrador" && (
               <TableCell className="text-center">
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-2 justify-center items-center">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <span
@@ -231,7 +287,7 @@ const TableIncidentes = ({ incidencias, isError, isLoading, user }: Props) => {
                       </div>
                       <AlertDialogHeader>
                         <AlertDialogTitle>
-                          Historial de verificacion acciones
+                          Historial de verificacion de acciones
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                           En esta seccion podras observar todas las
@@ -240,17 +296,17 @@ const TableIncidentes = ({ incidencias, isError, isLoading, user }: Props) => {
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <div className="p-3">
-                        <TableAccionesIncidencia
-                          acciones={acciones?.data}
-                          cargando={cargando}
-                          error={Error}
+                        <TableVerificacionAcciones
+                          verificadas={verificadas?.data}
+                          cargando={loading}
+                          error={ErrorVer}
                         />
                       </div>
-                      <PaginacionAccionesIdicencias
+                      <PaginacionAccionesVerificadasIncidencia
                         offset={offset}
                         handlePrev={handlePrev}
                         limit={limit}
-                        total={total}
+                        total={totalVer}
                         handleNext={handleNext}
                       />
                     </AlertDialogContent>

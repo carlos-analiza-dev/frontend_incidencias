@@ -25,9 +25,13 @@ import { toast } from "@/hooks/use-toast";
 import { CreateAccidente } from "@/interfaces/accidentes/accidente-create.interface";
 import { Accidente } from "@/interfaces/accidentes/accidentes-response.interface";
 import { User } from "@/interfaces/users/user.interface";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
-import React from "react";
+import React, { useState } from "react";
+import FormAccionesAccidentes from "../acciones_incidencias/FormAccionesAccidentes";
+import FormVerificacionAccionesAccidentes from "../acciones_incidencias/FormVerificacionAccionesAccidentes";
+import { getAccionesVerificadasAccidentes } from "@/api/acciones/get-acciones-verificadas-accidentes";
+import TableVerificacionAcciones from "../acciones_incidencias/TableVerificacionAcciones";
 
 interface Props {
   accidentes: Accidente[] | undefined;
@@ -38,6 +42,9 @@ interface Props {
 
 const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
   const queryClient = useQueryClient();
+  const [selectedId, setSelectedId] = useState<string>("");
+  const limit = 10;
+  const [offset, setOffset] = useState<number>(0);
 
   const handleEditCategoria = async (
     id: string,
@@ -60,6 +67,23 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
         });
       }
     }
+  };
+
+  const {
+    data: verificadas,
+    isError: ErrorVer,
+    isLoading: loading,
+  } = useQuery({
+    queryKey: ["verificacion-acciones-accidentes", selectedId, limit, offset],
+    queryFn: () => getAccionesVerificadasAccidentes(selectedId, limit, offset),
+    retry: 0,
+    staleTime: 60 * 100 * 5,
+  });
+  const totalVer = verificadas?.total || 0;
+
+  const handleViewAcciones = (id: string) => {
+    setSelectedId(id);
+    setOffset(0);
   };
 
   if (isLoading) {
@@ -85,36 +109,31 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
       <TableCaption>Lista de accidentes Laboratorios Analiza</TableCaption>
       <TableHeader>
         <TableRow>
-          <TableHead className="text-center font-bold text-gray-800">
-            Area Accidente
+          <TableHead className="text-center text-gray-800 font-bold">
+            Area del accidente
           </TableHead>
-          <TableHead className="text-center font-bold text-gray-800">
-            Notificante
-          </TableHead>
-          <TableHead className="text-center font-bold text-gray-800">
-            Cargo Notificante
-          </TableHead>
-          <TableHead className="text-center font-bold text-gray-800">
-            Afectado
-          </TableHead>
-          <TableHead className="text-center font-bold text-gray-800">
-            Fecha Accidente
-          </TableHead>
-          <TableHead className="text-center font-bold text-gray-800">
-            Hora
-          </TableHead>
-          <TableHead className="text-center font-bold text-gray-800">
+          <TableHead className="text-center text-gray-800 font-bold">
             Descripcion
           </TableHead>
-          <TableHead className="text-center font-bold text-gray-800">
+
+          <TableHead className="text-center text-gray-800 font-bold">
             Categoria
           </TableHead>
-          {user?.rol === "Administrador" ||
-            (user?.rol === "Gerente_Sucursal" && (
-              <TableHead className="text-center font-bold text-gray-800">
-                Acciones
-              </TableHead>
-            ))}
+          <TableHead className="text-center text-gray-800 font-bold">
+            Detalles
+          </TableHead>
+
+          {user?.rol === "Administrador" && (
+            <TableHead className="text-center text-gray-800 font-bold">
+              Ver Acciones
+            </TableHead>
+          )}
+          {(user?.rol === "Administrador" ||
+            user?.rol === "Gerente_Sucursal") && (
+            <TableHead className="text-center text-gray-800 font-bold">
+              Acciones
+            </TableHead>
+          )}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -122,22 +141,100 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
           <TableRow key={accidente.id}>
             <TableCell className="text-center">{accidente.area}</TableCell>
             <TableCell className="text-center">
-              {accidente.nombreNotificante}
-            </TableCell>
-            <TableCell className="text-center">
-              {accidente.cargoNotificante}
-            </TableCell>
-            <TableCell className="text-center">
-              {accidente.nombreAfectado}
-            </TableCell>
-            <TableCell className="text-center">
-              {accidente.fechaIncidente}
-            </TableCell>
-            <TableCell className="text-center">{accidente.hora}</TableCell>
-            <TableCell className="text-center">
               {accidente.descripcion}
             </TableCell>
             <TableCell className="text-center">{accidente.categoria}</TableCell>
+            <TableCell className="text-center">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <span
+                    onClick={() => {}}
+                    className="hover:underline cursor-pointer"
+                  >
+                    Ver
+                  </span>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-w-xl md:max-w-2xl">
+                  <div className="flex justify-end">
+                    <AlertDialogCancel>X</AlertDialogCancel>
+                  </div>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Mas detalles</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      En esta seccion se pueden observar mas detalles sobre el
+                      accidente
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div>Detalles</div>
+                </AlertDialogContent>
+              </AlertDialog>
+            </TableCell>
+            {user?.rol === "Administrador" && (
+              <TableCell className="text-center">
+                <div className="flex gap-2 justify-center items-center">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <span
+                        onClick={() => {}}
+                        className="hover:underline cursor-pointer"
+                      >
+                        Implementadas
+                      </span>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="w-full md:max-w-4xl lg:max-w-6xl">
+                      <div className="flex justify-end">
+                        <AlertDialogCancel>X</AlertDialogCancel>
+                      </div>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Historial de acciones
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          En esta seccion podras observar todas las acciones que
+                          se han realizado para cada accidente
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="p-3">Tabla</div>
+                      <div>Paginacion</div>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <span
+                        onClick={() => handleViewAcciones(accidente.id)}
+                        className="hover:underline cursor-pointer"
+                      >
+                        Verificadas
+                      </span>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="w-full md:max-w-4xl lg:max-w-6xl">
+                      <div className="flex justify-end">
+                        <AlertDialogCancel>X</AlertDialogCancel>
+                      </div>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Historial de verificacion de acciones
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          En esta seccion podras observar todas las
+                          verificaciones de acciones que se han realizado para
+                          cada accidente
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <div className="p-3">
+                        <TableVerificacionAcciones
+                          verificadas={verificadas?.data}
+                          cargando={loading}
+                          error={ErrorVer}
+                        />
+                      </div>
+                      <div>Paginacion</div>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </TableCell>
+            )}
             {user?.rol === "Administrador" && (
               <TableCell className="text-center">
                 <div className="flex justify-center">
@@ -190,6 +287,61 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
+              </TableCell>
+            )}
+            {user?.rol === "Gerente_Sucursal" && (
+              <TableCell className="flex justify-center gap-3">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size={"sm"}>Implementar Accion</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <div className="flex justify-end">
+                      <AlertDialogCancel>X</AlertDialogCancel>
+                    </div>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Agregar accion para el accidente ocurrido
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        En esta seccion podras agregar acciones que se tomaran
+                        sobre los accidentes ocurridos.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="p-2">
+                      <FormAccionesAccidentes
+                        user={user}
+                        accidente_id={accidente.id}
+                      />
+                    </div>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size={"sm"}>Verificar Accion</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <div className="flex justify-end">
+                      <AlertDialogCancel>X</AlertDialogCancel>
+                    </div>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Agregar verificacion de accion para el accidente
+                        ocurrida
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        En esta seccion podras agregar verificaciones de
+                        acciones que se tomaran sobre los accidentes ocurridos.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="p-2">
+                      <FormVerificacionAccionesAccidentes
+                        user={user}
+                        accidente_id={accidente.id}
+                      />
+                    </div>
+                  </AlertDialogContent>
+                </AlertDialog>
               </TableCell>
             )}
           </TableRow>
