@@ -32,6 +32,12 @@ import FormAccionesAccidentes from "../acciones_incidencias/FormAccionesAccident
 import FormVerificacionAccionesAccidentes from "../acciones_incidencias/FormVerificacionAccionesAccidentes";
 import { getAccionesVerificadasAccidentes } from "@/api/acciones/get-acciones-verificadas-accidentes";
 import TableVerificacionAcciones from "../acciones_incidencias/TableVerificacionAcciones";
+import { getAccionesImplementadasAccidentes } from "@/api/acciones/get-acciones-implementadas-accidentes";
+import TableAccionesIncidencia from "../acciones_incidencias/TableAccionesIncidencia";
+import PaginacionAccionesIdicencias from "../acciones_incidencias/PaginacionAccionesIdicencias";
+import PaginacionAccionesVerificadasIncidencia from "../acciones_incidencias/PaginacionAccionesVerificadasIncidencia";
+import DetailsAccidentes from "../accidentes/DetailsAccidentes";
+import { ObtenerAccidentesById } from "@/api/accidentes/obtener-accidentes";
 
 interface Props {
   accidentes: Accidente[] | undefined;
@@ -70,6 +76,18 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
   };
 
   const {
+    data: acciones,
+    isError: Error,
+    isLoading: cargando,
+  } = useQuery({
+    queryKey: ["acciones-accidentes", selectedId, limit, offset],
+    queryFn: () =>
+      getAccionesImplementadasAccidentes(selectedId, limit, offset),
+    retry: 0,
+    staleTime: 60 * 100 * 5,
+  });
+
+  const {
     data: verificadas,
     isError: ErrorVer,
     isLoading: loading,
@@ -79,7 +97,30 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
     retry: 0,
     staleTime: 60 * 100 * 5,
   });
+
+  const {
+    data: accidenteId,
+    isError: ErrorId,
+    isLoading: loadingIn,
+  } = useQuery({
+    queryKey: ["accidente-id", selectedId],
+    queryFn: () => ObtenerAccidentesById(selectedId),
+    retry: 0,
+    staleTime: 60 * 100 * 5,
+  });
+
+  const total = acciones?.total || 0;
   const totalVer = verificadas?.total || 0;
+
+  const handleNext = () => {
+    if (offset + limit < total) {
+      setOffset((prev) => prev + limit);
+    }
+  };
+
+  const handlePrev = () => {
+    setOffset((prev) => Math.max(prev - limit, 0));
+  };
 
   const handleViewAcciones = (id: string) => {
     setSelectedId(id);
@@ -148,13 +189,13 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <span
-                    onClick={() => {}}
+                    onClick={() => handleViewAcciones(accidente.id)}
                     className="hover:underline cursor-pointer"
                   >
                     Ver
                   </span>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="max-w-xl md:max-w-2xl">
+                <AlertDialogContent className="max-w-2xl md:max-w-4xl">
                   <div className="flex justify-end">
                     <AlertDialogCancel>X</AlertDialogCancel>
                   </div>
@@ -165,7 +206,11 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
                       accidente
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <div>Detalles</div>
+                  <DetailsAccidentes
+                    accidente={accidenteId}
+                    isError={ErrorId}
+                    isLoading={loadingIn}
+                  />
                 </AlertDialogContent>
               </AlertDialog>
             </TableCell>
@@ -175,7 +220,7 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <span
-                        onClick={() => {}}
+                        onClick={() => handleViewAcciones(accidente.id)}
                         className="hover:underline cursor-pointer"
                       >
                         Implementadas
@@ -194,8 +239,20 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
                           se han realizado para cada accidente
                         </AlertDialogDescription>
                       </AlertDialogHeader>
-                      <div className="p-3">Tabla</div>
-                      <div>Paginacion</div>
+                      <div className="p-3">
+                        <TableAccionesIncidencia
+                          acciones={acciones?.data}
+                          cargando={cargando}
+                          error={Error}
+                        />
+                      </div>
+                      <PaginacionAccionesIdicencias
+                        offset={offset}
+                        handlePrev={handlePrev}
+                        limit={limit}
+                        total={total}
+                        handleNext={handleNext}
+                      />
                     </AlertDialogContent>
                   </AlertDialog>
 
@@ -229,7 +286,13 @@ const TableAccidentes = ({ accidentes, isError, isLoading, user }: Props) => {
                           error={ErrorVer}
                         />
                       </div>
-                      <div>Paginacion</div>
+                      <PaginacionAccionesVerificadasIncidencia
+                        offset={offset}
+                        handlePrev={handlePrev}
+                        limit={limit}
+                        total={totalVer}
+                        handleNext={handleNext}
+                      />
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>

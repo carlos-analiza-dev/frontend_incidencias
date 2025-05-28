@@ -30,9 +30,7 @@ import { isAxiosError } from "axios";
 import FormAcciones from "../acciones_incidencias/FormAcciones";
 import { getAccionesImplementadasIncidencias } from "@/api/acciones/get-acciones-implementadas-incidencias";
 import TableAccionesIncidencia from "../acciones_incidencias/TableAccionesIncidencia";
-import { useEffect, useState } from "react";
-import { ResponseAccionesIncidencias } from "@/interfaces/acciones/acciones-incidencias.response.interface";
-import { ArrowLeftToLine, ArrowRightToLine } from "lucide-react";
+import { useState } from "react";
 import PaginacionAccionesIdicencias from "../acciones_incidencias/PaginacionAccionesIdicencias";
 import FormVerificacionAccionesIncidencias from "../acciones_incidencias/FormVerificacionAccionesIncidencias";
 import TableVerificacionAcciones from "../acciones_incidencias/TableVerificacionAcciones";
@@ -51,6 +49,7 @@ interface Props {
 const TableIncidentes = ({ incidencias, isError, isLoading, user }: Props) => {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string>("");
+
   const limit = 10;
   const [offset, setOffset] = useState<number>(0);
 

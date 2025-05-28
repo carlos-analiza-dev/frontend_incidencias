@@ -1,4 +1,5 @@
 import { get } from "@/config/axiosInstance";
+import { AccidenteResID } from "@/interfaces/accidentes/accidenteId-response.interface";
 import { ResponseAccidentes } from "@/interfaces/accidentes/accidentes-response.interface";
 
 export const ObtenerAccidentes = async (
@@ -17,5 +18,11 @@ export const ObtenerAccidentesBySucursal = async (
 ) => {
   const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/accidentes/sucursal/${sucursalId}?limit=${limit}&offset=${offset}`;
   const response = await get<ResponseAccidentes>(url);
+  return response;
+};
+
+export const ObtenerAccidentesById = async (id: string) => {
+  const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/accidentes/${id}`;
+  const response = await get<AccidenteResID>(url);
   return response;
 };
